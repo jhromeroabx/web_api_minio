@@ -1,6 +1,6 @@
 using System;
 
-namespace web_api_users.Controllers.ParamsDTO
+namespace web_api_users.Application.Dtos
 {
     public class ObjectInfo
     {

@@ -12,7 +12,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using web_api_users.Controllers.Clients;
+using web_api_users.Application.Interfaces;
+using web_api_users.Domain.Interfaces;
+using web_api_users.Infrastructure.Services;
 
 namespace web_api_users
 {
@@ -47,7 +49,9 @@ namespace web_api_users
             //});
 
             // contenedor de dependencias..
-            services.AddSingleton<IFileManagerFactory, FileManager>();
+            services.AddSingleton<IFileManager, FileManager>();
+            services.AddScoped<IMinioService, MinioService>();
+
 
         }
 

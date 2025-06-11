@@ -1,8 +1,8 @@
 ﻿using Minio;
 
-namespace web_api_users.Controllers.Clients
+namespace web_api_users.Application.Interfaces
 {
-    public interface IFileManagerFactory
+    public interface IFileManager
     {
         //void SetupMinio(MinioClient minio);
         //void SetupMinioHard();
