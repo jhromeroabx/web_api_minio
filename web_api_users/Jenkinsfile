@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+
+    environment {
+        SONAR_PROJECT_KEY = 'miniowebapi'
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    extensions: [[$class: 'WipeWorkspace']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/jhromeroabx/WebApi_DOTNET.git',
+                        credentialsId: 'github-https'
+                    ]]
+                ])
+            }
+        }
+
+        stage('Análisis SonarQube') {
+            steps {
+                withSonarQubeEnv('SonarQube Loasi') {
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        script {
+                            def scannerHome = tool 'SonarScanner'
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \\
+                                -Dsonar.projectKey=${env.SONAR_PROJECT_KEY} \\
+                                -Dsonar.sources=. \\
+                                -Dsonar.login=$SONAR_TOKEN
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Esperar análisis SonarQube') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+    }
+}
