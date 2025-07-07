@@ -14,7 +14,7 @@ pipeline {
                     extensions: [[$class: 'WipeWorkspace']],
                     userRemoteConfigs: [[
                         url: 'https://github.com/jhromeroabx/WebApi_DOTNET.git',
-                        credentialsId: 'github-https'
+                        credentialsId: 'github-j'
                     ]]
                 ])
             }
