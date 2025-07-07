@@ -20,19 +20,19 @@ pipeline {
             }
         }
 
-        stage('Análisis SonarQube') {
+  stage('Análisis SonarQube') {
     steps {
         withSonarQubeEnv('SonarQube Loasi') {
             dir("${env.WORKSPACE}") {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                     withEnv([
                         'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64',
-                        'PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH'
+                        'PATH+JDK=/usr/lib/jvm/java-17-openjdk-amd64/bin'
                     ]) {
                         script {
                             def scannerHome = tool 'SonarScanner'
                             sh """
-                                echo 'Verificando Java usado:'
+                                echo 'Java version usada:'
                                 java -version
 
                                 ${scannerHome}/bin/sonar-scanner \\
@@ -48,6 +48,7 @@ pipeline {
         }
     }
 }
+
 
         stage('Esperar análisis SonarQube') {
             steps {
