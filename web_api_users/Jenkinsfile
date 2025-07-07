@@ -21,27 +21,33 @@ pipeline {
         }
 
         stage('Análisis SonarQube') {
-            steps {
-                withSonarQubeEnv('SonarQube Loasi') {
-                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+    steps {
+        withSonarQubeEnv('SonarQube Loasi') {
+            dir("${env.WORKSPACE}") {
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    withEnv([
+                        'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64',
+                        'PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH'
+                    ]) {
                         script {
-                            def scannerHome = tool 'SonarScanner' // nombre del tool en Global Tool Configuration
-                            def javaHome = tool 'jdk17'
+                            def scannerHome = tool 'SonarScanner'
+                            sh """
+                                echo 'Verificando Java usado:'
+                                java -version
 
-                            withEnv(["JAVA_HOME=${javaHome}", "PATH+JAVA=${javaHome}/bin"]) {
-                                sh """
-                                    ${scannerHome}/bin/sonar-scanner \\
-                                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
-                                    -Dsonar.sources=. \\
-                                    -Dsonar.login=$SONAR_TOKEN \\
-                                    -Dsonar.host.url=https://sonarqube123.share.zrok.io
-                                """
-                            }
+                                ${scannerHome}/bin/sonar-scanner \\
+                                -Dsonar.projectKey=${env.SONAR_PROJECT_KEY} \\
+                                -Dsonar.sources=. \\
+                                -Dsonar.login=$SONAR_TOKEN \\
+                                -Dsonar.host.url=https://sonarqube123.share.zrok.io
+                            """
                         }
                     }
                 }
             }
         }
+    }
+}
 
         stage('Esperar análisis SonarQube') {
             steps {
