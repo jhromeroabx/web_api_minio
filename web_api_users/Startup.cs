@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using web_api_users.Application.Dtos;
 using web_api_users.Application.Interfaces;
 using web_api_users.Domain.Interfaces;
 using web_api_users.Infrastructure.Services;
@@ -41,8 +42,11 @@ namespace web_api_users
             //        });
             //});
 
+            // Registro de configuración de MinIO
+            services.Configure<CredentialsMINio>(Configuration.GetSection("minio"));
+
             // contenedor de dependencias..
-            services.AddSingleton<IFileManager, FileManager>();
+            services.AddScoped<IFileManager, FileManager>();
             services.AddScoped<IMinioService, MinioService>();
 
 
