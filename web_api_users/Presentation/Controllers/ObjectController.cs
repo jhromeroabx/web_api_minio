@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -21,6 +22,7 @@ namespace web_api_users.Controllers
         /// <summary>
         /// Sube un archivo al bucket especificado.
         /// </summary>
+        [Authorize(Policy = "WriteMinio")]
         [HttpPost("UploadObject")]
         [Consumes("multipart/form-data")]
         [SwaggerOperation(
@@ -47,6 +49,7 @@ namespace web_api_users.Controllers
         /// <summary>
         /// Descarga un archivo desde MinIO.
         /// </summary>
+        [Authorize(Policy = "ReadMinio")]
         [HttpGet("GetObjectMINio")]
         [SwaggerOperation(
             Summary = "Descargar archivo",
@@ -69,6 +72,7 @@ namespace web_api_users.Controllers
         /// <summary>
         /// Elimina un archivo de MinIO.
         /// </summary>
+        [Authorize(Policy = "WriteMinio")]
         [HttpDelete("DeleteObjectMINio")]
         [SwaggerOperation(
             Summary = "Eliminar archivo",

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -21,6 +22,7 @@ namespace web_api_users.Controllers
         /// <summary>
         /// Crea un nuevo bucket en MinIO.
         /// </summary>
+        [Authorize(Policy = "WriteMinio")]
         [HttpPost("CreateBucketMINio")]
         [SwaggerOperation(
             Summary = "Crear bucket",
@@ -43,6 +45,7 @@ namespace web_api_users.Controllers
         /// <summary>
         /// Lista todos los buckets existentes en MinIO.
         /// </summary>
+        [Authorize(Policy = "ReadMinio")]
         [HttpGet("ListBucketsMINio")]
         [SwaggerOperation(
             Summary = "Listar buckets",
@@ -58,6 +61,7 @@ namespace web_api_users.Controllers
         /// <summary>
         /// Lista los objetos dentro de un bucket.
         /// </summary>
+        [Authorize(Policy = "ReadMinio")]
         [HttpGet("ListObjectsMINio")]
         [SwaggerOperation(
             Summary = "Listar objetos en bucket",
@@ -80,6 +84,7 @@ namespace web_api_users.Controllers
         /// <summary>
         /// Elimina un bucket de MinIO.
         /// </summary>
+        [Authorize(Policy = "WriteMinio")]
         [HttpDelete("DeleteBucketMINio")]
         [SwaggerOperation(
             Summary = "Eliminar bucket",
