@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Threading.Tasks;
 using web_api_users.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
+using System;
 
 namespace web_api_users.Controllers
 {
@@ -12,37 +14,65 @@ namespace web_api_users.Controllers
     public class ObjectController : ControllerBase
     {
         private readonly IObjectService _objectService;
+        private readonly ILogger<ObjectController> _logger;
 
-        public ObjectController(IObjectService objectService)
+        public ObjectController(IObjectService objectService, ILogger<ObjectController> logger)
         {
             _objectService = objectService;
+            _logger = logger;
         }
 
         /// <summary>
-        /// Sube un archivo al bucket especificado.
+        /// Sube un archivo al bucket especificado. Reemplaza si ya existe.
         /// </summary>
         [HttpPost("UploadObject")]
         [Consumes("multipart/form-data")]
         [SwaggerOperation(
-    Summary = "Subir archivo",
-    Description = "Sube un archivo al bucket de MinIO. Solo se aceptan archivos tipo imagen (JPG/PNG), audio (MP3) o PDF."
-)]
-        [SwaggerResponse(StatusCodes.Status200OK, "Archivo subido exitosamente.")]
-        [SwaggerResponse(StatusCodes.Status409Conflict, "El archivo ya existe o hubo un error.")]
+            Summary = "Subir archivo",
+            Description = "Sube un archivo al bucket de MinIO. Reemplaza el archivo si ya existe."
+        )]
+        [SwaggerResponse(StatusCodes.Status200OK, "Archivo subido/reemplazado exitosamente.")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Archivo no válido.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error interno del servidor.")]
         public async Task<IActionResult> UploadObject(
-    [FromQuery, SwaggerParameter("Nombre del bucket. Ej: 'documentos-usuarios'", Required = true)] string nameBucket = "documentos-usuarios",
-    [FromQuery, SwaggerParameter("Nombre del archivo al guardar. Ej: 'dni_frontal'", Required = true)] string nameObject = "dni_frontal",
-    [FromQuery, SwaggerParameter("Tipo MIME del archivo. Acepta:\n- image/jpeg (JPG)\n- image/png (PNG)\n- application/pdf (PDF)\n- audio/mpeg (MP3)", Required = true)] string contentType = "application/pdf",
-    [SwaggerParameter("Archivo a subir (JPG, PNG, MP3 o PDF).", Required = true)] IFormFile file=null)
+            [FromQuery, SwaggerParameter("Nombre del bucket. Ej: 'product-images'", Required = true)] string nameBucket,
+            [FromQuery, SwaggerParameter("Nombre del archivo al guardar. Ej: 'product_37'", Required = true)] string nameObject,
+            [FromQuery, SwaggerParameter("Tipo MIME del archivo. Ej: 'image/jpeg'", Required = true)] string contentType,
+            [FromForm, SwaggerParameter("Archivo a subir", Required = true)] IFormFile file)
         {
-            var result = await _objectService.UploadObjectAsync(nameBucket, nameObject, contentType, file);
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { success = false, message = "Archivo no válido" });
+            }
 
-            if (!result.Success)
-                return Conflict(result.Message);
+            try
+            {
+                _logger.LogInformation($"Subiendo archivo: {nameObject} al bucket: {nameBucket}, tipo: {contentType}, tamaño: {file.Length} bytes");
 
-            return Ok(result.Message);
+                var result = await _objectService.UploadObjectAsync(nameBucket, nameObject, contentType, file);
+
+                if (!result.Success)
+                {
+                    _logger.LogWarning($"Error al subir archivo: {result.Message}");
+                    return StatusCode(500, new { success = false, message = result.Message });
+                }
+
+                _logger.LogInformation("Archivo subido exitosamente");
+
+                return Ok(new
+                {
+                    success = true,
+                    message = result.Message,
+                    objectName = nameObject,
+                    bucket = nameBucket
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en UploadObject");
+                return StatusCode(500, new { success = false, message = $"Error interno: {ex.Message}" });
+            }
         }
-
 
         /// <summary>
         /// Descarga un archivo desde MinIO.
@@ -53,17 +83,32 @@ namespace web_api_users.Controllers
             Description = "Obtiene un archivo almacenado en MinIO, indicando el bucket y el nombre del archivo."
         )]
         [SwaggerResponse(StatusCodes.Status200OK, "Archivo descargado correctamente.")]
-        [SwaggerResponse(StatusCodes.Status409Conflict, "Error al obtener el archivo.")]
+        [SwaggerResponse(StatusCodes.Status404NotFound, "Archivo no encontrado.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error al obtener el archivo.")]
         public async Task<IActionResult> GetObjectMINio(
-            [FromQuery, SwaggerParameter("Nombre del bucket. Ej: 'documentos-usuarios'", Required = true)] string nameBucket = "documentos-usuarios",
-            [FromQuery, SwaggerParameter("Nombre del archivo a descargar. Ej: 'dni_frontal'", Required = true)] string nameObject = "dni_frontal")
+            [FromQuery, SwaggerParameter("Nombre del bucket. Ej: 'product-images'", Required = true)] string nameBucket,
+            [FromQuery, SwaggerParameter("Nombre del archivo a descargar. Ej: 'product_37'", Required = true)] string nameObject)
         {
-            var result = await _objectService.GetObjectAsync(nameBucket, nameObject);
+            try
+            {
+                _logger.LogInformation($"Descargando archivo: {nameObject} del bucket: {nameBucket}");
 
-            if (!result.Success)
-                return Conflict(result.Message);
+                var result = await _objectService.GetObjectAsync(nameBucket, nameObject);
 
-            return File(result.Data, result.ContentType);
+                if (!result.Success)
+                {
+                    _logger.LogWarning($"Error al descargar archivo: {result.Message}");
+                    return NotFound(new { success = false, message = result.Message });
+                }
+
+                _logger.LogInformation("Archivo descargado exitosamente");
+                return File(result.Data, result.ContentType, nameObject);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en GetObjectMINio");
+                return StatusCode(500, new { success = false, message = $"Error interno: {ex.Message}" });
+            }
         }
 
         /// <summary>
@@ -75,17 +120,31 @@ namespace web_api_users.Controllers
             Description = "Elimina un archivo desde un bucket especificado en MinIO."
         )]
         [SwaggerResponse(StatusCodes.Status200OK, "Archivo eliminado correctamente.")]
-        [SwaggerResponse(StatusCodes.Status409Conflict, "Error al eliminar el archivo.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error al eliminar el archivo.")]
         public async Task<IActionResult> DeleteObjectMINio(
-            [FromQuery, SwaggerParameter("Nombre del bucket. Ej: 'documentos-usuarios'", Required = true)] string bucket = "documentos-usuarios",
-            [FromQuery, SwaggerParameter("Nombre del archivo a eliminar. Ej: 'dni_frontal'", Required = true)] string objectname = "dni_frontal")
+            [FromQuery, SwaggerParameter("Nombre del bucket. Ej: 'product-images'", Required = true)] string bucket,
+            [FromQuery, SwaggerParameter("Nombre del archivo a eliminar. Ej: 'product_37'", Required = true)] string objectname)
         {
-            var result = await _objectService.DeleteObjectAsync(bucket, objectname);
+            try
+            {
+                _logger.LogInformation($"Eliminando archivo: {objectname} del bucket: {bucket}");
 
-            if (!result.Success)
-                return Conflict(result.Message);
+                var result = await _objectService.DeleteObjectAsync(bucket, objectname);
 
-            return Ok(result.Message);
+                if (!result.Success)
+                {
+                    _logger.LogWarning($"Error al eliminar archivo: {result.Message}");
+                    return StatusCode(500, new { success = false, message = result.Message });
+                }
+
+                _logger.LogInformation("Archivo eliminado exitosamente");
+                return Ok(new { success = true, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en DeleteObjectMINio");
+                return StatusCode(500, new { success = false, message = $"Error interno: {ex.Message}" });
+            }
         }
     }
 }
