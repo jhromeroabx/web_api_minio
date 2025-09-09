@@ -9,6 +9,7 @@ using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using web_api_users.Application.Dtos;
 using web_api_users.Application.Interfaces;
@@ -97,11 +98,25 @@ namespace web_api_users
 
             services.AddAuthorization(options =>
             {
+                //options.AddPolicy("ReadMinio", policy =>
+                //    policy.RequireClaim("scope", "minio-webapi.read"));
+                //options.AddPolicy("WriteMinio", policy =>
+                //    policy.RequireClaim("scope", "minio-webapi.write"));
+
                 options.AddPolicy("ReadMinio", policy =>
-                    policy.RequireClaim("scope", "minio-webapi.read"));
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c =>
+                            c.Type == "scope" &&
+                            c.Value.Split(' ').Contains("minio-webapi.read"))));
+
                 options.AddPolicy("WriteMinio", policy =>
-                    policy.RequireClaim("scope", "minio-webapi.write"));
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c =>
+                            c.Type == "scope" &&
+                            c.Value.Split(' ').Contains("minio-webapi.write"))));
             });
+
+
 
             //services.AddCors(options =>
             //{
