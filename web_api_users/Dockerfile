@@ -8,8 +8,6 @@ EXPOSE 443
 # Instala libgdiplus
 RUN apt-get update && apt-get install -y libgdiplus
 
-ENV ASPNETCORE_ENVIRONMENT=Development
-
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
 COPY ["web_api_users.csproj", "."]
@@ -24,6 +22,11 @@ RUN dotnet publish "web_api_users.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+# Usuario no-root para más seguridad
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+
 ENTRYPOINT ["dotnet", "web_api_users.dll"]
 
 # docker build -t dotnet-minio-webapi .

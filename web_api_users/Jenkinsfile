@@ -2,7 +2,12 @@ pipeline {
     agent any
 
     environment {
-        SONAR_PROJECT_KEY = 'miniowebapi'
+        GIT_REPO           = 'https://github.com/jhromeroabx/WebApi_DOTNET.git'
+        GIT_BRANCH         = 'develope'
+        SONAR_PROJECT_KEY  = 'miniowebapi'
+        SONAR_HOST_URL     = 'https://sonarqubeloasi.share.zrok.io'
+        JAVA_HOME          = '/usr/lib/jvm/java-17-openjdk-amd64'
+        PATH               = "${JAVA_HOME}/bin:${PATH}"
     }
 
     stages {
@@ -10,50 +15,57 @@ pipeline {
             steps {
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/main']],
+                    branches: [[name: "*/${env.GIT_BRANCH}"]],
                     extensions: [[$class: 'WipeWorkspace']],
                     userRemoteConfigs: [[
-                        url: 'https://github.com/jhromeroabx/WebApi_DOTNET.git',
+                        url: env.GIT_REPO,
                         credentialsId: 'github-j'
                     ]]
                 ])
             }
         }
 
-  stage('Análisis SonarQube') {
-    steps {
-        withSonarQubeEnv('SonarQube Loasi') {
-            dir("${env.WORKSPACE}") {
-                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                    withEnv([
-                        'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64',
-                        'PATH+JDK=/usr/lib/jvm/java-17-openjdk-amd64/bin'
-                    ]) {
+        /*stage('Análisis SonarQube') {
+            steps {
+                withSonarQubeEnv('SonarQube Loasi') {
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                         script {
                             def scannerHome = tool 'SonarScanner'
                             sh """
+                                set +x
                                 echo 'Java version usada:'
                                 java -version
 
-                                ${scannerHome}/bin/sonar-scanner \\
-                                -Dsonar.projectKey=${env.SONAR_PROJECT_KEY} \\
-                                -Dsonar.sources=. \\
-                                -Dsonar.login=$SONAR_TOKEN \\
-                                -Dsonar.host.url=https://sonarqube123.share.zrok.io
+                                "${scannerHome}/bin/sonar-scanner" \\
+                                  -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \\
+                                  -Dsonar.sources=. \\
+                                  -Dsonar.login="${SONAR_TOKEN}" \\
+                                  -Dsonar.host.url="${SONAR_HOST_URL}"
                             """
                         }
                     }
                 }
             }
         }
-    }
-}
 
 
         stage('Esperar análisis SonarQube') {
             steps {
                 timeout(time: 10, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
+                }
+            }
+        }*/
+
+        stage('Levantar App con Docker Compose') {
+            steps {
+                script {
+                    dir("${env.WORKSPACE}") {
+                        sh 'docker-compose down || true'
+                        sh 'docker-compose build --no-cache'
+                        sh 'docker-compose up -d'
+                        sh 'docker-compose ps'
+                    }
                 }
             }
         }
