@@ -58,13 +58,15 @@ pipeline {
         }*/
 
         stage('Levantar App con Docker Compose') {
-            steps {
-                script {
-                    dir("${env.WORKSPACE}") {
-                        sh 'docker-compose down || true'
-                        sh 'docker-compose build --no-cache'
-                        sh 'docker-compose up -d'
-                        sh 'docker-compose ps'
+    steps {
+        script {
+            dir("${env.WORKSPACE}") {
+                sh '''
+                    docker-compose -f docker-compose.yml down || true
+                    docker-compose -f docker-compose.yml build --no-cache
+                    docker-compose -f docker-compose.yml up -d
+                    docker-compose -f docker-compose.yml ps
+                '''
                     }
                 }
             }
