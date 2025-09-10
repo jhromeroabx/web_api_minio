@@ -6,7 +6,7 @@ pipeline {
         GIT_BRANCH         = 'develope'
         SONAR_PROJECT_KEY  = 'miniowebapi'
         SONAR_HOST_URL     = 'https://sonarqubeloasi.share.zrok.io'
-        LOCAL_REPO_PATH    = "/home/diego-epc/Documentos/PROYECTOS/web_api_minio"
+        LOCAL_REPO_PATH    = "/home/diego-epc/Documentos/PROYECTOS/web_api_minio/web_api_users"
     }
 
     stages {
@@ -25,15 +25,6 @@ pipeline {
                         withCredentials([usernamePassword(credentialsId: 'github-j', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
                             dir("${env.LOCAL_REPO_PATH}") {
                                 sh """
-                                    echo "🔧 Preservando archivo .env..."
-                                    # Guardar .env temporalmente si existe
-                                    if [ -f .env ]; then
-                                        cp .env /tmp/.env_backup
-                                        HAS_ENV_BACKUP=true
-                                    else
-                                        HAS_ENV_BACKUP=false
-                                    fi
-                                    
                                     echo "🔄 Limpiando repositorio..."
                                     git reset --hard
                                     git clean -fd -x --exclude=.env  # No eliminar .env
@@ -46,15 +37,8 @@ pipeline {
                                     git checkout develope --force 2>/dev/null || git checkout -b develope origin/develope --force
                                     git pull origin develope --force
                                     
-                                    echo "🔧 Restaurando .env si era necesario..."
-                                    if [ "\$HAS_ENV_BACKUP" = "true" ] && [ ! -f .env ]; then
-                                        cp /tmp/.env_backup .env
-                                        echo "✅ .env restaurado desde backup"
-                                    fi
-                                    
                                     echo "✅ Sincronización completada:"
                                     git status
-                                    ls -la .env* 2>/dev/null || echo "No hay archivo .env"
                                 """
                             }
                         }
