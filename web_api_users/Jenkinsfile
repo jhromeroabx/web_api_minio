@@ -2,30 +2,68 @@ pipeline {
     agent any
 
     environment {
-        GIT_REPO           = 'https://github.com/jhromeroabx/WebApi_DOTNET.git'
+        GIT_REPO           = 'https://github.com/EL-OASIS/WebApi_DOTNET.git'
         GIT_BRANCH         = 'develope'
         SONAR_PROJECT_KEY  = 'miniowebapi'
         SONAR_HOST_URL     = 'https://sonarqubeloasi.share.zrok.io'
-        JAVA_HOME          = '/usr/lib/jvm/java-17-openjdk-amd64'
-        PATH               = "${JAVA_HOME}/bin:${PATH}"
+        LOCAL_REPO_PATH    = "epc/Documentos/PROYECTOS/WebApi_DOTNET/web_api_users/"
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Verificar/Clonar repositorio') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: "*/${env.GIT_BRANCH}"]],
-                    extensions: [[$class: 'WipeWorkspace']],
-                    userRemoteConfigs: [[
-                        url: env.GIT_REPO,
-                        credentialsId: 'github-j'
-                    ]]
-                ])
+                script {
+                    if (!fileExists("${env.LOCAL_REPO_PATH}")) {
+                        echo '📁 Directorio no existe. Clonando repositorio...'
+                        withCredentials([usernamePassword(credentialsId: 'github-j', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                            sh """
+                                git clone -b ${env.GIT_BRANCH} https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/EL-OASIS/WebApi_DOTNET.git ${env.LOCAL_REPO_PATH}
+                            """
+                        }
+                    } else {
+                        echo '📁 Directorio ya existe. Verificando código...'
+                        withCredentials([usernamePassword(credentialsId: 'github-j', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                            dir("${env.LOCAL_REPO_PATH}") {
+                                sh """
+                                    echo "🔧 Preservando archivo .env..."
+                                    # Guardar .env temporalmente si existe
+                                    if [ -f .env ]; then
+                                        cp .env /tmp/.env_backup
+                                        HAS_ENV_BACKUP=true
+                                    else
+                                        HAS_ENV_BACKUP=false
+                                    fi
+                                    
+                                    echo "🔄 Limpiando repositorio..."
+                                    git reset --hard
+                                    git clean -fd -x --exclude=.env  # No eliminar .env
+                                    
+                                    echo "📥 Sincronizando con remoto..."
+                                    git remote set-url origin https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/EL-OASIS/WebApi_DOTNET.git
+                                    git fetch --all --force --prune
+                                    
+                                    echo "🔄 Actualizando rama develope..."
+                                    git checkout develope --force 2>/dev/null || git checkout -b develope origin/develope --force
+                                    git pull origin develope --force
+                                    
+                                    echo "🔧 Restaurando .env si era necesario..."
+                                    if [ "\$HAS_ENV_BACKUP" = "true" ] && [ ! -f .env ]; then
+                                        cp /tmp/.env_backup .env
+                                        echo "✅ .env restaurado desde backup"
+                                    fi
+                                    
+                                    echo "✅ Sincronización completada:"
+                                    git status
+                                    ls -la .env* 2>/dev/null || echo "No hay archivo .env"
+                                """
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        /*stage('An�lisis SonarQube') {
+        /*stage('An�lisis SonarQube') {
             steps {
                 withSonarQubeEnv('SonarQube Loasi') {
                     withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
@@ -49,7 +87,7 @@ pipeline {
         }
 
 
-        stage('Esperar an�lisis SonarQube') {
+        stage('Esperar an�lisis SonarQube') {
             steps {
                 timeout(time: 10, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
@@ -58,15 +96,16 @@ pipeline {
         }*/
 
         stage('Levantar App con Docker Compose') {
-    steps {
-        script {
-            dir("${env.WORKSPACE}") {
-                sh '''
-                    docker-compose -f docker-compose.yml down || true
-                    docker-compose -f docker-compose.yml build --no-cache
-                    docker-compose -f docker-compose.yml up -d
-                    docker-compose -f docker-compose.yml ps
-                '''
+            steps {
+                script {
+                    dir("${env.LOCAL_REPO_PATH}") {
+                        // Apaga cualquier instancia previa
+                        sh 'docker-compose down || true'
+                        // Levanta la app y fuerza rebuild para asegurar que use el último código
+                        sh 'docker-compose build --no-cache'
+                        sh 'docker-compose up -d'
+                        // Puedes poner un log de salud por si quieres validar
+                        sh 'docker-compose ps'
                     }
                 }
             }
