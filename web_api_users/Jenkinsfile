@@ -6,7 +6,7 @@ pipeline {
         GIT_BRANCH         = 'develope'
         SONAR_PROJECT_KEY  = 'miniowebapi'
         SONAR_HOST_URL     = 'https://sonarqubeloasi.share.zrok.io'
-        LOCAL_REPO_PATH    = "epc/Documentos/PROYECTOS/WebApi_DOTNET/web_api_users/"
+        LOCAL_REPO_PATH    = "epc/Documentos/PROYECTOS/web_api_minio/"
     }
 
     stages {
