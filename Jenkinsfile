@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        GIT_REPO           = 'https://github.com/EL-OASIS/WebApi_DOTNET.git'
+        GIT_REPO           = 'https://github.com/EL-OASIS/web_api_minio.git'
         GIT_BRANCH         = 'develope'
         SONAR_PROJECT_KEY  = 'miniowebapi'
         SONAR_HOST_URL     = 'https://sonarqubeloasi.share.zrok.io'
@@ -17,7 +17,7 @@ pipeline {
                         echo '📁 Directorio no existe. Clonando repositorio...'
                         withCredentials([usernamePassword(credentialsId: 'github-j', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
                             sh """
-                                git clone -b ${env.GIT_BRANCH} https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/EL-OASIS/WebApi_DOTNET.git ${env.LOCAL_REPO_PATH}
+                                git clone -b ${env.GIT_BRANCH} https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/EL-OASIS/web_api_minio.git ${env.LOCAL_REPO_PATH}
                             """
                         }
                     } else {
@@ -30,7 +30,7 @@ pipeline {
                                     git clean -fd -x --exclude=.env  # No eliminar .env
                                     
                                     echo "📥 Sincronizando con remoto..."
-                                    git remote set-url origin https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/EL-OASIS/WebApi_DOTNET.git
+                                    git remote set-url origin https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/EL-OASIS/web_api_minio.git
                                     git fetch --all --force --prune
                                     
                                     echo "🔄 Actualizando rama develope..."
@@ -82,7 +82,7 @@ pipeline {
         stage('Levantar App con Docker Compose') {
             steps {
                 script {
-                    dir("${env.LOCAL_REPO_PATH}/web_api_users") {
+                    dir("${env.LOCAL_REPO_PATH}") {
                         // Apaga cualquier instancia previa
                         sh 'docker-compose down || true'
                         // Levanta la app y fuerza rebuild para asegurar que use el último código

@@ -146,7 +146,7 @@ namespace web_api_users
                 //SI FALLA EL SWAGGER SACARLO DEL IF
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "web_api_users v1"));
+                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "web_api_minio v1"));
             }
 
             app.UseHttpsRedirection();
