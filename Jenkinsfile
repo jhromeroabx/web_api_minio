@@ -13,30 +13,34 @@ pipeline {
         stage('Verificar/Clonar repositorio') {
             steps {
                 script {
-                    if (!fileExists("${env.LOCAL_REPO_PATH}")) {
-                        echo '📁 Directorio no existe. Clonando repositorio...'
+                    def repoPath = env.LOCAL_REPO_PATH
+                    def isGitRepo = fileExists("${repoPath}/.git")
+
+                    if (!fileExists(repoPath) || !isGitRepo) {
+                        echo '📁 No es un repositorio válido. Re-clonando desde cero...'
+                        sh "rm -rf ${repoPath}"
                         withCredentials([usernamePassword(credentialsId: 'github-j', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
                             sh """
-                                git clone -b ${env.GIT_BRANCH} https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/EL-OASIS/web_api_minio.git ${env.LOCAL_REPO_PATH}
+                                git clone -b ${env.GIT_BRANCH} https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/EL-OASIS/web_api_minio.git ${repoPath}
                             """
                         }
                     } else {
-                        echo '📁 Directorio ya existe. Verificando código...'
+                        echo '📁 Repositorio válido detectado. Sincronizando cambios...'
                         withCredentials([usernamePassword(credentialsId: 'github-j', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                            dir("${env.LOCAL_REPO_PATH}") {
+                            dir(repoPath) {
                                 sh """
                                     echo "🔄 Limpiando repositorio..."
                                     git reset --hard
-                                    git clean -fd -x --exclude=.env  # No eliminar .env
-                                    
+                                    git clean -fd --exclude=.env  # Corrige uso de --exclude
+
                                     echo "📥 Sincronizando con remoto..."
                                     git remote set-url origin https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/EL-OASIS/web_api_minio.git
                                     git fetch --all --force --prune
-                                    
-                                    echo "🔄 Actualizando rama develope..."
-                                    git checkout develope --force 2>/dev/null || git checkout -b develope origin/develope --force
-                                    git pull origin develope --force
-                                    
+
+                                    echo "🔄 Actualizando rama ${env.GIT_BRANCH}..."
+                                    git checkout ${env.GIT_BRANCH} --force 2>/dev/null || git checkout -b ${env.GIT_BRANCH} origin/${env.GIT_BRANCH} --force
+                                    git pull origin ${env.GIT_BRANCH} --force
+
                                     echo "✅ Sincronización completada:"
                                     git status
                                 """
@@ -47,48 +51,13 @@ pipeline {
             }
         }
 
-        /*stage('An�lisis SonarQube') {
-            steps {
-                withSonarQubeEnv('SonarQube Loasi') {
-                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                        script {
-                            def scannerHome = tool 'SonarScanner'
-                            sh """
-                                set +x
-                                echo 'Java version usada:'
-                                java -version
-
-                                "${scannerHome}/bin/sonar-scanner" \\
-                                  -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \\
-                                  -Dsonar.sources=. \\
-                                  -Dsonar.login="${SONAR_TOKEN}" \\
-                                  -Dsonar.host.url="${SONAR_HOST_URL}"
-                            """
-                        }
-                    }
-                }
-            }
-        }
-
-
-        stage('Esperar an�lisis SonarQube') {
-            steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }*/
-
         stage('Levantar App con Docker Compose') {
             steps {
                 script {
                     dir("${env.LOCAL_REPO_PATH}") {
-                        // Apaga cualquier instancia previa
                         sh 'docker-compose down || true'
-                        // Levanta la app y fuerza rebuild para asegurar que use el último código
                         sh 'docker-compose build --no-cache'
                         sh 'docker-compose up -d'
-                        // Puedes poner un log de salud por si quieres validar
                         sh 'docker-compose ps'
                     }
                 }
