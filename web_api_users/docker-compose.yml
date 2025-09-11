@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  miniowebapi:
+    container_name: miniowebapi
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "7775:80"
+      - "7773:443"

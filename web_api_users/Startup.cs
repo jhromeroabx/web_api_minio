@@ -116,26 +116,25 @@ namespace web_api_users
                             c.Value.Split(' ').Contains("minio-webapi.write"))));
             });
 
+          services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", // Cambiar el nombre de la política
+                    builder =>
+                    {
+                        builder.AllowAnyOrigin()    // Permitir cualquier origen
+                               .AllowAnyHeader()    // Permitir cualquier header
+                               .AllowAnyMethod();   // Permitir cualquier método (GET, POST, etc.)
+                    });
+            });
 
-
-            //services.AddCors(options =>
-            //{
-            //    options.AddPolicy("AllowSpecificOrigin",
-            //        builder =>
-            //        {
-            //            builder.WithOrigins("http://localhost:80", "http://otro_dominio_php")
-            //                   .AllowAnyHeader()
-            //                   .AllowAnyMethod();
-            //        });
-            //});
-
-            // Registro de configuraci�n de MinIO
+            // Registro de configuración de MinIO
             services.Configure<CredentialsMINio>(Configuration.GetSection("minio"));
 
             // contenedor de dependencias..
             services.AddScoped<IFileManager, FileManager>();
             services.AddScoped<IBucketService, BucketService>();
             services.AddScoped<IObjectService, ObjectService>();
+            services.AddLogging();
 
         }
 
@@ -154,6 +153,7 @@ namespace web_api_users
 
             app.UseRouting();
             app.UseAuthentication();
+            app.UseCors("AllowAll"); // Usar la política que definiste
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
