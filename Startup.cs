@@ -73,8 +73,14 @@ namespace web_api_users
                             TokenUrl = new Uri(Configuration["Wso2is:Authority"]),
                             Scopes = new Dictionary<string, string>
                             {
-                                {"minio-webapi.read", "Scope for read minio" },
-                                {"minio-webapi.write", "Scope for write minio" }
+                                {"minio-bucket-create.write", "scope for bucket creation in minio" },
+                                {"minio-bucket-list.read", "scope to list minio buckets" },
+                                {"minio-bucket-list-objects.read", "Scope to list minio objects" },
+                                {"minio-bucket-delete.write", "Scope for delete minio bucket" },
+                                {"minio-object-upload.write", "Scope for upload objects in minio" },
+                                {"minio-object-download.read", "Scope for download objects in minio" },
+                                {"minio-object-delete.write", "Scope for delete objects in minio" }
+                                
                             }
                         }
                     }
@@ -91,29 +97,65 @@ namespace web_api_users
                                 Id = "oauth2"
                             }
                         },
-                        new[] { "minio-webapi.read", "minio-webapi.write" }
+                        new[] { 
+                            "minio-bucket-create.write",
+                            "minio-bucket-list.read",
+                            "minio-bucket-list-objects.read",
+                            "minio-bucket-delete.write",
+                            "minio-object-upload.write",
+                            "minio-object-download.read",
+                            "minio-object-delete.write"
+                        }
                     }
                 });
             });
 
             services.AddAuthorization(options =>
             {
-                //options.AddPolicy("ReadMinio", policy =>
-                //    policy.RequireClaim("scope", "minio-webapi.read"));
-                //options.AddPolicy("WriteMinio", policy =>
-                //    policy.RequireClaim("scope", "minio-webapi.write"));
-
-                options.AddPolicy("ReadMinio", policy =>
+                
+                options.AddPolicy("MinioBucketList", policy =>
                     policy.RequireAssertion(context =>
                         context.User.HasClaim(c =>
                             c.Type == "scope" &&
-                            c.Value.Split(' ').Contains("minio-webapi.read"))));
+                            c.Value.Split(' ').Contains("minio-bucket-list.read"))));
 
-                options.AddPolicy("WriteMinio", policy =>
+                options.AddPolicy("MinioBucketCreate", policy =>
                     policy.RequireAssertion(context =>
                         context.User.HasClaim(c =>
                             c.Type == "scope" &&
-                            c.Value.Split(' ').Contains("minio-webapi.write"))));
+                            c.Value.Split(' ').Contains("minio-bucket-create.write"))));
+
+                options.AddPolicy("MinioBucketListObject", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c =>
+                            c.Type == "scope" &&
+                            c.Value.Split(' ').Contains("minio-bucket-list-objects.read"))));
+
+                options.AddPolicy("MinioBucketDelete", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c =>
+                            c.Type == "scope" &&
+                            c.Value.Split(' ').Contains("minio-bucket-delete.write"))));
+
+                options.AddPolicy("MinioObjectUpload", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c =>
+                            c.Type == "scope" &&
+                            c.Value.Split(' ').Contains("minio-object-upload.write"))));
+
+                options.AddPolicy("MinioObjectDownload", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c =>
+                            c.Type == "scope" &&
+                            c.Value.Split(' ').Contains("minio-object-download.read"))));
+
+                options.AddPolicy("MinioObjectDelete", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c =>
+                            c.Type == "scope" &&
+                            c.Value.Split(' ').Contains("minio-object-delete.write"))));
+
+                
             });
 
           services.AddCors(options =>

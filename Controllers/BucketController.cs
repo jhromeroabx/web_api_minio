@@ -22,7 +22,7 @@ namespace web_api_users.Controllers
         /// <summary>
         /// Crea un nuevo bucket en MinIO.
         /// </summary>
-        [Authorize(Policy = "WriteMinio")]
+        [Authorize(Policy = "MinioBucketCreate")]
         [HttpPost("CreateBucketMINio")]
         [SwaggerOperation(
             Summary = "Crear bucket",
@@ -45,7 +45,7 @@ namespace web_api_users.Controllers
         /// <summary>
         /// Lista todos los buckets existentes en MinIO.
         /// </summary>
-        [Authorize(Policy = "ReadMinio")]
+        [Authorize(Policy = "MinioBucketList")]
         [HttpGet("ListBucketsMINio")]
         [SwaggerOperation(
             Summary = "Listar buckets",
@@ -61,7 +61,7 @@ namespace web_api_users.Controllers
         /// <summary>
         /// Lista los objetos dentro de un bucket.
         /// </summary>
-        [Authorize(Policy = "ReadMinio")]
+        [Authorize(Policy = "MinioBucketListObject")]
         [HttpGet("ListObjectsMINio")]
         [SwaggerOperation(
             Summary = "Listar objetos en bucket",
@@ -84,7 +84,7 @@ namespace web_api_users.Controllers
         /// <summary>
         /// Elimina un bucket de MinIO.
         /// </summary>
-        [Authorize(Policy = "WriteMinio")]
+        [Authorize(Policy = "MinioBucketDelete")]
         [HttpDelete("DeleteBucketMINio")]
         [SwaggerOperation(
             Summary = "Eliminar bucket",
