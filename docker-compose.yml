@@ -12,3 +12,9 @@ services:
     ports:
       - "7775:80"
       - "7773:443"
+    networks:
+      - minio-network
+
+networks:
+  minio-network:
+    external: true
