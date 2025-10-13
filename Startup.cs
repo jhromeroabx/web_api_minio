@@ -10,7 +10,6 @@ using Swashbuckle.AspNetCore.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using web_api_users.Application.Dtos;
 using web_api_users.Application.Interfaces;
 using web_api_users.Domain.Interfaces;
@@ -31,28 +30,21 @@ namespace web_api_users
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
-            {
-                options.Authority = Configuration["Wso2is:Authority"];
-                options.RequireHttpsMetadata = true;
-
-                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true,
-                    ValidIssuer = Configuration["Wso2is:Authority"], 
+                    options.Authority = Configuration["Wso2is:Authority"];
+                    options.MetadataAddress = Configuration["Wso2is:OidcMetadata"];
+                    options.RequireHttpsMetadata = true;
 
-                    ValidateAudience = false,
-
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-
-                    IssuerSigningKeyResolver = (token, securityToken, kid, validationParameters) =>
+                    options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        var client = new HttpClient();
-                        var keySet = client.GetStringAsync(Configuration["Wso2is:Jwks"]).Result;
-                        return new JsonWebKeySet(keySet).GetSigningKeys();
-                    }
-                };
-            });
+                        ValidateIssuer = true,
+
+                        ValidateAudience = false,
+
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true
+                    };
+                });
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
@@ -63,14 +55,14 @@ namespace web_api_users
                 c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
                 {
                     Type = SecuritySchemeType.OAuth2,
-                    Description = "OAuth2 Password Grant",
+                    Description = "OAuth2 Client Credentials",
                     In = ParameterLocation.Header,
                     Name = "Authorization",
                     Flows = new OpenApiOAuthFlows
                     {
-                        Password = new OpenApiOAuthFlow
+                        ClientCredentials = new OpenApiOAuthFlow
                         {
-                            TokenUrl = new Uri(Configuration["Wso2is:Authority"]),
+                            TokenUrl = new Uri($"{Configuration["Wso2is:Authority"]}/token"),
                             Scopes = new Dictionary<string, string>
                             {
                                 {"minio-bucket-create.write", "scope for bucket creation in minio" },
@@ -80,7 +72,7 @@ namespace web_api_users
                                 {"minio-object-upload.write", "Scope for upload objects in minio" },
                                 {"minio-object-download.read", "Scope for download objects in minio" },
                                 {"minio-object-delete.write", "Scope for delete objects in minio" }
-                                
+
                             }
                         }
                     }
@@ -97,7 +89,7 @@ namespace web_api_users
                                 Id = "oauth2"
                             }
                         },
-                        new[] { 
+                        new[] {
                             "minio-bucket-create.write",
                             "minio-bucket-list.read",
                             "minio-bucket-list-objects.read",
@@ -112,7 +104,7 @@ namespace web_api_users
 
             services.AddAuthorization(options =>
             {
-                
+
                 options.AddPolicy("MinioBucketList", policy =>
                     policy.RequireAssertion(context =>
                         context.User.HasClaim(c =>
@@ -155,10 +147,10 @@ namespace web_api_users
                             c.Type == "scope" &&
                             c.Value.Split(' ').Contains("minio-object-delete.write"))));
 
-                
+
             });
 
-          services.AddCors(options =>
+            services.AddCors(options =>
             {
                 options.AddPolicy("AllowAll", // Cambiar el nombre de la política
                     builder =>
@@ -188,7 +180,10 @@ namespace web_api_users
                 //SI FALLA EL SWAGGER SACARLO DEL IF
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "web_api_minio v1"));
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "web_api_minio v1");
+                });
             }
 
             app.UseHttpsRedirection();
