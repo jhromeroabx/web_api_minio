@@ -26,7 +26,7 @@ namespace web_api_users
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
+        // Este método es llamado por el entorno de ejecución. Úselo para agregar servicios al contenedor.
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
