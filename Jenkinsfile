@@ -6,6 +6,7 @@ environment {
     SONAR_PROJECT_KEY  = 'miniowebapi'
     SONAR_HOST_URL     = 'https://sonarqubeloasi.share.zrok.io'
     LOCAL_REPO_PATH    = "/home/diego-epc/Documentos/PROYECTOS/web_api_minio"
+    COMPOSE_PROJECT_NAME = 'web-api-minio'
 }
 
 stages {
@@ -50,6 +51,18 @@ stages {
         }
     }
 
+    stage('Cleanup Docker Proyecto') {
+        steps {
+            dir("${env.LOCAL_REPO_PATH}") {
+                sh '''
+                    echo "🧹 Cleanup compose project: $COMPOSE_PROJECT_NAME"
+                    docker-compose -p "$COMPOSE_PROJECT_NAME" down --rmi local -v --remove-orphans || true
+                    echo "Cleanup proyecto listo"
+                '''
+            }
+        }
+    }
+
     stage('Levantar App con Docker Compose') {
         steps {
             script {
@@ -60,17 +73,17 @@ stages {
                         echo "🧹 Eliminando contenedor en uso si existe..."
                         docker rm -f ${containerName} || true
 
-                        echo "🧼 Limpiando recursos docker-compose..."
-                        docker-compose down || true
+                        echo "🧼 Limpiando recursos docker-compose (solo del proyecto)..."
+                        docker-compose -p "\$COMPOSE_PROJECT_NAME" down --remove-orphans || true
 
                         echo "🔨 Recompilando imagen desde cero..."
-                        docker-compose build --no-cache
+                        docker-compose -p "\$COMPOSE_PROJECT_NAME" build --no-cache
 
                         echo "🚀 Levantando contenedor actualizado..."
-                        docker-compose up -d
+                        docker-compose -p "\$COMPOSE_PROJECT_NAME" up -d
 
                         echo "📋 Estado de contenedores:"
-                        docker-compose ps
+                        docker-compose -p "\$COMPOSE_PROJECT_NAME" ps
                     """
                 }
             }
@@ -79,4 +92,3 @@ stages {
 }
 
 }
-
