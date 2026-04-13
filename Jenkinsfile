@@ -1,7 +1,8 @@
-pipeline { agent any
+pipeline {
+    agent { label 'docker-agent' }
 
 environment {
-    GIT_REPO           = 'https://github.com/EL-OASIS/web_api_minio.git'
+    GIT_REPO           = 'https://github.com/jhromeroabx/web_api_minio.git'
     GIT_BRANCH         = 'develope'
     SONAR_PROJECT_KEY  = 'miniowebapi'
     SONAR_HOST_URL     = 'https://sonarqubeloasi.share.zrok.io'
@@ -19,14 +20,14 @@ stages {
                 if (!fileExists(repoPath) || !isGitRepo) {
                     echo '📁 No es un repositorio válido. Re-clonando desde cero...'
                     sh "rm -rf ${repoPath}"
-                    withCredentials([usernamePassword(credentialsId: 'github-j', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
                         sh """
-                            git clone -b ${env.GIT_BRANCH} https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/EL-OASIS/web_api_minio.git ${repoPath}
+                            git clone -b ${env.GIT_BRANCH} https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/jhromeroabx/web_api_minio.git ${repoPath}
                         """
                     }
                 } else {
                     echo '📁 Repositorio válido detectado. Sincronizando cambios...'
-                    withCredentials([usernamePassword(credentialsId: 'github-j', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
                         dir(repoPath) {
                             sh """
                                 echo "🔄 Limpiando repositorio..."
@@ -34,7 +35,7 @@ stages {
                                 git clean -fd --exclude=.env  # Corrige uso de --exclude
 
                                 echo "📥 Sincronizando con remoto..."
-                                git remote set-url origin https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/EL-OASIS/web_api_minio.git
+                                git remote set-url origin https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/jhromeroabx/web_api_minio.git
                                 git fetch --all --force --prune
 
                                 echo "🔄 Actualizando rama ${env.GIT_BRANCH}..."
