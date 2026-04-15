@@ -22,7 +22,7 @@ stages {
                     sh "rm -rf ${repoPath}"
                     withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
                         sh """
-                            git clone -b ${env.GIT_BRANCH} https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/jhromeroabx/web_api_minio.git ${repoPath}
+                            git clone -b ${env.GIT_BRANCH} https://\$GIT_USERNAME:\$GIT_PASSWORD@${env.GIT_REPO.replace('https://','')} ${env.LOCAL_REPO_PATH}
                         """
                     }
                 } else {
@@ -35,7 +35,7 @@ stages {
                                 git clean -fd --exclude=.env  # Corrige uso de --exclude
 
                                 echo "📥 Sincronizando con remoto..."
-                                git remote set-url origin https://\$GIT_USERNAME:\$GIT_PASSWORD@github.com/jhromeroabx/web_api_minio.git
+                                git remote set-url origin https://\$GIT_USERNAME:\$GIT_PASSWORD@${env.GIT_REPO.replace('https://','')}
                                 git fetch --all --force --prune
 
                                 echo "🔄 Actualizando rama ${env.GIT_BRANCH}..."
@@ -78,7 +78,7 @@ stages {
                         docker-compose -p "\$COMPOSE_PROJECT_NAME" down --remove-orphans || true
 
                         echo "🔨 Recompilando imagen desde cero..."
-                        docker-compose -p "\$COMPOSE_PROJECT_NAME" build --no-cache
+                        docker-compose -p "\$COMPOSE_PROJECT_NAME" build
 
                         echo "🚀 Levantando contenedor actualizado..."
                         docker-compose -p "\$COMPOSE_PROJECT_NAME" up -d
