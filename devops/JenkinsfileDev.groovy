@@ -8,6 +8,7 @@ environment {
     SONAR_HOST_URL     = 'https://sonarqubeloasi.share.zrok.io'
     LOCAL_REPO_PATH    = "/home/diego-epc/Documentos/PROYECTOS/web_api_minio"
     COMPOSE_PROJECT_NAME = 'web-api-minio'
+    ENV_BACKUP_PATH   = '/tmp/.env_backup'
 }
 
 stages {
@@ -30,6 +31,12 @@ stages {
                     withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
                         dir(repoPath) {
                             sh """
+                                echo "🔐 Verificando respaldo del .env..."
+                                if [ ! -s "${env.ENV_BACKUP_PATH}" ]; then
+                                    echo "❌ El respaldo no existe o está vacío: ${env.ENV_BACKUP_PATH}"
+                                    exit 1
+                                fi
+
                                 echo "🔄 Limpiando repositorio..."
                                 git reset --hard
                                 git clean -fd --exclude=.env  # Corrige uso de --exclude
@@ -42,8 +49,13 @@ stages {
                                 git checkout ${env.GIT_BRANCH} --force 2>/dev/null || git checkout -b ${env.GIT_BRANCH} origin/${env.GIT_BRANCH} --force
                                 git pull origin ${env.GIT_BRANCH} --force
 
-                                echo "✅ Sincronización completada:"
-                                git status
+                                    echo "🔧 Copiando .env de producción..."
+                                    cp "${env.ENV_BACKUP_PATH}" .env
+                                    chmod 600 .env
+
+                                    echo "✅ Sincronización completada:"
+                                    git status
+                                    ls -la .env
                             """
                         }
                     }
