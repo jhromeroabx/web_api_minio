@@ -155,9 +155,22 @@ namespace web_api_users
                 options.AddPolicy("AllowAll", // Cambiar el nombre de la política
                     builder =>
                     {
-                        builder.AllowAnyOrigin()    // Permitir cualquier origen
-                               .AllowAnyHeader()    // Permitir cualquier header
-                               .AllowAnyMethod();   // Permitir cualquier método (GET, POST, etc.)
+                        var allowedOrigins = Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
+                                                Configuration.GetSection("Cors:AllowedHosts").Get<string[]>() ??
+                                                Array.Empty<string>();
+
+                        if (allowedOrigins.Length > 0)
+                        {
+                            builder.WithOrigins(allowedOrigins)
+                                   .AllowAnyHeader()    // Permitir cualquier header
+                                   .AllowAnyMethod();   // Permitir cualquier método (GET, POST, etc.)
+                        }
+                        else
+                        {
+                            builder.AllowAnyOrigin()    // Permitir cualquier origen
+                                   .AllowAnyHeader()    // Permitir cualquier header
+                                   .AllowAnyMethod();   // Permitir cualquier método (GET, POST, etc.)
+                        }
                     });
             });
 

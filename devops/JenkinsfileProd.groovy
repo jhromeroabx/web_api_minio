@@ -9,6 +9,7 @@ environment {
     LOCAL_REPO_PATH    = "/home/jhosep-epc/Documentos/PROYECTOS/web_api_minio"
     COMPOSE_PROJECT_NAME = 'web-api-minio'
     ENV_BACKUP_PATH   = '/opt/jenkins/envs/prod/.env_backup_web_api_minio_prod'
+    ASPNETCORE_ENVIRONMENT = 'Production'
 }
 
 stages {
