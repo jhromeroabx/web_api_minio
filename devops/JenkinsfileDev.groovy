@@ -75,7 +75,7 @@ stages {
                                                 export PATH="$PATH:$DOTNET_TOOLS_DIR"
 
                                                 echo "🧹 Limpiando artefactos previos de pruebas y cobertura"
-                                                rm -rf TestResults
+                                                rm -rf tests/web_api_users.Tests/TestResults
 
                                                 echo "🔧 Instalando/actualizando dotnet-sonarscanner"
                                                 ORIGINAL_DIR="$PWD"
@@ -88,6 +88,7 @@ stages {
                                                 dotnet restore web_api_users.sln
 
                                                 SONAR_PROPS_BACKUP=""
+                                                trap 'if [ -n "$SONAR_PROPS_BACKUP" ] && [ -f "$SONAR_PROPS_BACKUP" ]; then mv "$SONAR_PROPS_BACKUP" sonar-project.properties; fi' EXIT
                                                 if [ -f sonar-project.properties ]; then
                                                     echo "📄 Desactivando temporalmente sonar-project.properties para SonarScanner for .NET"
                                                     SONAR_PROPS_BACKUP="sonar-project.properties.jenkins.bak"
@@ -100,7 +101,9 @@ stages {
                                                     /d:sonar.host.url="$SONAR_HOST_URL" \
                                                     /d:sonar.token="$SONAR_AUTH_TOKEN" \
                                                     /d:sonar.exclusions="**/bin/**,**/obj/**" \
-                                                    /d:sonar.cs.opencover.reportsPaths="TestResults/**/coverage.opencover.xml"
+                                                    /d:sonar.coverage.exclusions="**/Properties/Resources.Designer.cs" \
+                                                    /d:sonar.cs.opencover.reportsPaths="tests/web_api_users.Tests/TestResults/Coverage/coverage.opencover.xml" \
+                                                    /d:sonar.cs.vstest.reportsPaths="tests/web_api_users.Tests/TestResults/*.trx"
 
                                                 echo "🏗️ Compilando solución"
                                                 dotnet build web_api_users.sln --no-restore
@@ -109,9 +112,10 @@ stages {
                                                 dotnet test tests/web_api_users.Tests/web_api_users.Tests.csproj \
                                                     --no-build \
                                                     --logger "trx" \
-                                                    /p:CollectCoverage=true \
-                                                    /p:CoverletOutput=TestResults/Coverage/ \
-                                                    /p:CoverletOutputFormat=opencover
+                                                    --results-directory tests/web_api_users.Tests/TestResults \
+                                                    /p:CollectCoverage=true
+
+                                                test -s tests/web_api_users.Tests/TestResults/Coverage/coverage.opencover.xml
 
                                                 echo "✅ Cerrando análisis SonarQube"
                                                 dotnet-sonarscanner end /d:sonar.token="$SONAR_AUTH_TOKEN"
