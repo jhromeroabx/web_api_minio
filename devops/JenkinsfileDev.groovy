@@ -88,7 +88,7 @@ stages {
                                                 dotnet restore web_api_users.sln
 
                                                 echo "🚀 Iniciando análisis SonarQube"
-                                                dotnet sonarscanner begin \
+                                                dotnet-sonarscanner begin \
                                                     /k:"${SONAR_PROJECT_KEY}" \
                                                     /d:sonar.host.url="$SONAR_HOST_URL" \
                                                     /d:sonar.token="$SONAR_AUTH_TOKEN" \
@@ -107,7 +107,7 @@ stages {
                                                     /p:CoverletOutputFormat=opencover
 
                                                 echo "✅ Cerrando análisis SonarQube"
-                                                dotnet sonarscanner end /d:sonar.token="$SONAR_AUTH_TOKEN"
+                                                dotnet-sonarscanner end /d:sonar.token="$SONAR_AUTH_TOKEN"
                                         '''
                 }
             }
