@@ -4,8 +4,7 @@ pipeline {
 environment {
     GIT_REPO           = 'https://github.com/jhromeroabx/web_api_minio.git'
     GIT_BRANCH         = 'develope'
-    SONAR_PROJECT_KEY  = 'miniowebapi'
-    SONAR_HOST_URL     = 'https://sonarqubeloasi.share.zrok.io'
+    SONAR_PROJECT_KEY  = 'web-api-minio'
     LOCAL_REPO_PATH    = "/home/diego-epc/Documentos/PROYECTOS/web_api_minio"
     COMPOSE_PROJECT_NAME = 'web-api-minio'
     ENV_BACKUP_PATH   = '/opt/jenkins/envs/dev/.env_backup_web_api_minio_dev'
@@ -60,6 +59,53 @@ stages {
                             """
                         }
                     }
+                }
+            }
+        }
+    }
+
+    stage('Análisis SonarQube') {
+        steps {
+            withSonarQubeEnv('SonarQube Loasi') {
+                dir("${env.LOCAL_REPO_PATH}") {
+                                        sh '''
+                                                set -e
+
+                                                export DOTNET_TOOLS_DIR="$HOME/.dotnet/tools"
+                                                export PATH="$PATH:$DOTNET_TOOLS_DIR"
+
+                                                echo "🧹 Limpiando artefactos previos de pruebas y cobertura"
+                                                rm -rf TestResults
+
+                                                echo "🔧 Instalando/actualizando dotnet-sonarscanner"
+                                                dotnet tool update dotnet-sonarscanner --tool-path "$DOTNET_TOOLS_DIR" || \
+                                                dotnet tool install dotnet-sonarscanner --tool-path "$DOTNET_TOOLS_DIR"
+
+                                                echo "📦 Restaurando dependencias .NET"
+                                                dotnet restore web_api_users.sln
+
+                                                echo "🚀 Iniciando análisis SonarQube"
+                                                dotnet sonarscanner begin \
+                                                    /k:"${SONAR_PROJECT_KEY}" \
+                                                    /d:sonar.host.url="$SONAR_HOST_URL" \
+                                                    /d:sonar.token="$SONAR_AUTH_TOKEN" \
+                                                    /d:sonar.exclusions="**/bin/**,**/obj/**" \
+                                                    /d:sonar.cs.opencover.reportsPaths="TestResults/**/coverage.opencover.xml"
+
+                                                echo "🏗️ Compilando solución"
+                                                dotnet build web_api_users.sln --no-restore
+
+                                                echo "🧪 Ejecutando pruebas con cobertura OpenCover"
+                                                dotnet test tests/web_api_users.Tests/web_api_users.Tests.csproj \
+                                                    --no-build \
+                                                    --logger "trx" \
+                                                    /p:CollectCoverage=true \
+                                                    /p:CoverletOutput=TestResults/Coverage/ \
+                                                    /p:CoverletOutputFormat=opencover
+
+                                                echo "✅ Cerrando análisis SonarQube"
+                                                dotnet sonarscanner end /d:sonar.token="$SONAR_AUTH_TOKEN"
+                                        '''
                 }
             }
         }
