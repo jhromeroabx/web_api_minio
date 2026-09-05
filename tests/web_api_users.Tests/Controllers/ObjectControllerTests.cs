@@ -122,6 +122,40 @@ public class ObjectControllerTests
         Assert.Equal(StatusCodes.Status500InternalServerError, objectResult.StatusCode);
     }
 
+    [Fact]
+    public async Task UploadObject_RejectsEmptyFileWithoutCallingService()
+    {
+        var controller = new ObjectController(_objectServiceMock.Object, _loggerMock.Object);
+        var result = await controller.UploadObject("bucket", "file", "text/plain", CreateFormFile("", "text/plain"));
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(false, GetAnonymousProperty(badRequest.Value!, "success"));
+        _objectServiceMock.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData("upload")]
+    [InlineData("download")]
+    [InlineData("delete")]
+    public async Task ServiceExceptions_ReturnInternalServerError(string operation)
+    {
+        var error = new InvalidOperationException("storage unavailable");
+        var file = CreateFormFile("payload", "text/plain");
+        _objectServiceMock.Setup(s => s.UploadObjectAsync("bucket", "file", "text/plain", file)).ThrowsAsync(error);
+        _objectServiceMock.Setup(s => s.GetObjectAsync("bucket", "file")).ThrowsAsync(error);
+        _objectServiceMock.Setup(s => s.DeleteObjectAsync("bucket", "file")).ThrowsAsync(error);
+        var controller = new ObjectController(_objectServiceMock.Object, _loggerMock.Object);
+        var result = operation switch
+        {
+            "upload" => await controller.UploadObject("bucket", "file", "text/plain", file),
+            "download" => await controller.GetObjectMINio("bucket", "file"),
+            _ => await controller.DeleteObjectMINio("bucket", "file")
+        };
+        var response = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, response.StatusCode);
+        Assert.Equal(false, GetAnonymousProperty(response.Value!, "success"));
+        Assert.Equal("Error interno: storage unavailable", GetAnonymousProperty(response.Value!, "message"));
+    }
+
     private static IFormFile CreateFormFile(string content, string contentType)
     {
         var bytes = System.Text.Encoding.UTF8.GetBytes(content);

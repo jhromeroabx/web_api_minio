@@ -5,6 +5,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <CoverletOutput>$(MSBuildProjectDirectory)/TestResults/Coverage/</CoverletOutput>
+    <CoverletOutputFormat>opencover</CoverletOutputFormat>
+    <ExcludeByFile>**/Properties/Resources.Designer.cs</ExcludeByFile>
+    <Threshold>85</Threshold>
+    <ThresholdType>line,branch</ThresholdType>
+    <ThresholdStat>total</ThresholdStat>
   </PropertyGroup>
 
   <ItemGroup>
