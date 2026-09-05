@@ -87,6 +87,13 @@ stages {
                                                 echo "📦 Restaurando dependencias .NET"
                                                 dotnet restore web_api_users.sln
 
+                                                SONAR_PROPS_BACKUP=""
+                                                if [ -f sonar-project.properties ]; then
+                                                    echo "📄 Desactivando temporalmente sonar-project.properties para SonarScanner for .NET"
+                                                    SONAR_PROPS_BACKUP="sonar-project.properties.jenkins.bak"
+                                                    mv sonar-project.properties "$SONAR_PROPS_BACKUP"
+                                                fi
+
                                                 echo "🚀 Iniciando análisis SonarQube"
                                                 dotnet-sonarscanner begin \
                                                     /k:"${SONAR_PROJECT_KEY}" \
@@ -108,6 +115,10 @@ stages {
 
                                                 echo "✅ Cerrando análisis SonarQube"
                                                 dotnet-sonarscanner end /d:sonar.token="$SONAR_AUTH_TOKEN"
+
+                                                if [ -n "$SONAR_PROPS_BACKUP" ] && [ -f "$SONAR_PROPS_BACKUP" ]; then
+                                                    mv "$SONAR_PROPS_BACKUP" sonar-project.properties
+                                                fi
                                         '''
                 }
             }
