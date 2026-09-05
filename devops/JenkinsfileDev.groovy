@@ -78,10 +78,11 @@ stages {
                                                 rm -rf TestResults
 
                                                 echo "🔧 Instalando/actualizando dotnet-sonarscanner"
-                                                pushd "$HOME" >/dev/null
+                                                ORIGINAL_DIR="$PWD"
+                                                cd "$HOME"
                                                 dotnet tool update dotnet-sonarscanner --tool-path "$DOTNET_TOOLS_DIR" || \
                                                 dotnet tool install dotnet-sonarscanner --tool-path "$DOTNET_TOOLS_DIR"
-                                                popd >/dev/null
+                                                cd "$ORIGINAL_DIR"
 
                                                 echo "📦 Restaurando dependencias .NET"
                                                 dotnet restore web_api_users.sln
