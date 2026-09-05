@@ -34,7 +34,7 @@ public class BucketServiceTests
         using var fixture = new MinioFixture { BucketExists = exists };
         var result = await fixture.Buckets.DeleteBucket("docs");
         Assert.Equal(exists, result.Success);
-        Assert.Equal(exists ? "Se borró el bucket 'docs'" : "El bucket no existe", result.Message);
+        Assert.Equal(exists ? "Se borro el bucket 'docs'" : "El bucket no existe", result.Message);
         Assert.Equal(exists ? 1 : 0, fixture.Requests.Count(r => r.Method == HttpMethod.Delete));
     }
 

@@ -83,7 +83,7 @@ namespace web_api_users.Infrastructure.Services
 
                 await minio.RemoveBucketAsync(new RemoveBucketArgs().WithBucket(name));
 
-                return (true, $"Se borró el bucket '{name}'");
+                return (true, $"Se borro el bucket '{name}'");
             }
             catch (Exception ex)
             {
@@ -91,7 +91,7 @@ namespace web_api_users.Infrastructure.Services
             }
         }
 
-        // Listar todos los objetos de un bucket específico
+        // Listar todos los objetos de un bucket especifico
         public async Task<(bool Success, List<ObjectInfo> Objects, string Message)> ListObjects(string bucketName)
         {
             try

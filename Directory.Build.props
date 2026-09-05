@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Decode source files consistently on Windows and Linux. -->
+    <CodePage>65001</CodePage>
+  </PropertyGroup>
+</Project>
