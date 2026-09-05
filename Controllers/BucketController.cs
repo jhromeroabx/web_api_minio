@@ -9,7 +9,7 @@ namespace web_api_users.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [SwaggerTag("Gestión de buckets y objetos dentro de MinIO.")]
+    [SwaggerTag("Gestion de buckets y objetos dentro de MinIO.")]
     public class BucketController : ControllerBase
     {
         private readonly IBucketService _bucketService;
@@ -88,7 +88,7 @@ namespace web_api_users.Controllers
         [HttpDelete("DeleteBucketMINio")]
         [SwaggerOperation(
             Summary = "Eliminar bucket",
-            Description = "Elimina un bucket de MinIO. El bucket debe estar vacío."
+            Description = "Elimina un bucket de MinIO. El bucket debe estar vacio."
         )]
         [SwaggerResponse(StatusCodes.Status200OK, "Bucket eliminado exitosamente.")]
         [SwaggerResponse(StatusCodes.Status409Conflict, "Error al eliminar el bucket.")]

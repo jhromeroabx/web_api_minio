@@ -11,7 +11,7 @@ namespace web_api_users.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [SwaggerTag("Gestión de archivos en MinIO (subida, descarga y eliminación).")]
+    [SwaggerTag("Gestion de archivos en MinIO (subida, descarga y eliminacion).")]
     public class ObjectController : ControllerBase
     {
         private readonly IObjectService _objectService;
@@ -34,7 +34,7 @@ namespace web_api_users.Controllers
             Description = "Sube un archivo al bucket de MinIO. Reemplaza el archivo si ya existe."
         )]
         [SwaggerResponse(StatusCodes.Status200OK, "Archivo subido/reemplazado exitosamente.")]
-        [SwaggerResponse(StatusCodes.Status400BadRequest, "Archivo no válido.")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Archivo no valido.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error interno del servidor.")]
         public async Task<IActionResult> UploadObject(
             [FromQuery, SwaggerParameter("Nombre del bucket. Ej: 'product-images'", Required = true)] string nameBucket,
@@ -44,12 +44,12 @@ namespace web_api_users.Controllers
         {
             if (file == null || file.Length == 0)
             {
-                return BadRequest(new { success = false, message = "Archivo no válido" });
+                return BadRequest(new { success = false, message = "Archivo no valido" });
             }
 
             try
             {
-                _logger.LogInformation($"Subiendo archivo: {nameObject} al bucket: {nameBucket}, tipo: {contentType}, tamaño: {file.Length} bytes");
+                _logger.LogInformation($"Subiendo archivo: {nameObject} al bucket: {nameBucket}, tipo: {contentType}, tamano: {file.Length} bytes");
 
                 var result = await _objectService.UploadObjectAsync(nameBucket, nameObject, contentType, file);
 
