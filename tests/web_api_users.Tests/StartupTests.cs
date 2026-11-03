@@ -65,7 +65,7 @@ public class StartupTests
     public void Cors_UsesConfiguredOriginsOrFallback(string? key)
     {
         using var services = Services(key);
-        var policy = services.GetRequiredService<IOptions<CorsOptions>>().Value.GetPolicy("AllowAll")!;
+        var policy = services.GetRequiredService<IOptions<CorsOptions>>().Value.GetPolicy("AllowSomeOrigins")!;
         Assert.True(policy.AllowAnyHeader);
         Assert.True(policy.AllowAnyMethod);
         Assert.Equal(key == null, policy.AllowAnyOrigin);
