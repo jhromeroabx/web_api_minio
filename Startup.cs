@@ -152,26 +152,21 @@ namespace web_api_users
 
             services.AddCors(options =>
             {
-                options.AddPolicy("AllowAll", // Cambiar el nombre de la política
-                    builder =>
-                    {
-                        var allowedOrigins = Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
-                                                Configuration.GetSection("Cors:AllowedHosts").Get<string[]>() ??
-                                                Array.Empty<string>();
+                options.AddPolicy("AllowSomeOrigins", builder =>
+                {
+                    var allowedOrigins = Configuration
+                        .GetSection("Cors:AllowedOrigins")
+                        .Get<string[]>() ?? Array.Empty<string>();
 
-                        if (allowedOrigins.Length > 0)
-                        {
-                            builder.WithOrigins(allowedOrigins)
-                                   .AllowAnyHeader()    // Permitir cualquier header
-                                   .AllowAnyMethod();   // Permitir cualquier método (GET, POST, etc.)
-                        }
-                        else
-                        {
-                            builder.AllowAnyOrigin()    // Permitir cualquier origen
-                                   .AllowAnyHeader()    // Permitir cualquier header
-                                   .AllowAnyMethod();   // Permitir cualquier método (GET, POST, etc.)
-                        }
-                    });
+                    if (allowedOrigins.Length == 0)
+                    {
+                        throw new InvalidOperationException("Debe configurar Cors:AllowedOrigins.");
+                    }
+                    
+                    builder.WithOrigins(allowedOrigins)
+                        .AllowAnyHeader() // Permitir cualquier header
+                        .AllowAnyMethod(); // Permitir cualquier método (GET, POST, etc.)
+                });
             });
 
             // Registro de configuración de MinIO
@@ -203,7 +198,7 @@ namespace web_api_users
 
             app.UseRouting();
             app.UseAuthentication();
-            app.UseCors("AllowAll"); // Usar la política que definiste
+            app.UseCors("AllowSomeOrigins"); // Usar la política que definiste
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
