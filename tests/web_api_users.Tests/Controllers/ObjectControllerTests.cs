@@ -128,7 +128,7 @@ public class ObjectControllerTests
         var controller = new ObjectController(_objectServiceMock.Object, _loggerMock.Object);
         var result = await controller.UploadObject("bucket", "file", "text/plain", CreateFormFile("", "text/plain"));
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal(false, GetAnonymousProperty(badRequest.Value!, "success"));
+        Assert.False(Assert.IsType<bool>( GetAnonymousProperty(badRequest.Value!, "success") ));
         _objectServiceMock.VerifyNoOtherCalls();
     }
 
@@ -152,11 +152,11 @@ public class ObjectControllerTests
         };
         var response = Assert.IsType<ObjectResult>(result);
         Assert.Equal(500, response.StatusCode);
-        Assert.Equal(false, GetAnonymousProperty(response.Value!, "success"));
+        Assert.False(Assert.IsType<bool>( GetAnonymousProperty(response.Value!, "success") ));
         Assert.Equal("Error interno: storage unavailable", GetAnonymousProperty(response.Value!, "message"));
     }
 
-    private static IFormFile CreateFormFile(string content, string contentType)
+    private static FormFile CreateFormFile(string content, string contentType)
     {
         var bytes = System.Text.Encoding.UTF8.GetBytes(content);
         var stream = new MemoryStream(bytes);

@@ -49,17 +49,18 @@ namespace web_api_users.Controllers
 
             try
             {
-                _logger.LogInformation($"Subiendo archivo: {nameObject} al bucket: {nameBucket}, tipo: {contentType}, tamano: {file.Length} bytes");
+                _logger.LogInformation("Subiendo archivo: {NameObject} al bucket: {NameBucket}, tipo: {ContentType}, tamano: {FileLength} bytes", 
+                    nameObject, nameBucket, contentType, file.Length);
 
                 var result = await _objectService.UploadObjectAsync(nameBucket, nameObject, contentType, file);
 
                 if (!result.Success)
                 {
-                    _logger.LogWarning($"Error al subir archivo: {result.Message}");
+                    _logger.LogWarning("Error al subir archivo: {Message}", result.Message);
                     return StatusCode(500, new { success = false, message = result.Message });
                 }
 
-                _logger.LogInformation("Archivo subido exitosamente");
+                _logger.LogInformation("Archivo subido exitosamente: {NameObject} al bucket: {NameBucket}", nameObject, nameBucket);
 
                 return Ok(new
                 {
@@ -94,13 +95,13 @@ namespace web_api_users.Controllers
         {
             try
             {
-                _logger.LogInformation($"Descargando archivo: {nameObject} del bucket: {nameBucket}");
+                _logger.LogInformation("Descargando archivo: {NameObject} del bucket: {NameBucket}", nameObject, nameBucket);
 
                 var result = await _objectService.GetObjectAsync(nameBucket, nameObject);
 
                 if (!result.Success)
                 {
-                    _logger.LogWarning($"Error al descargar archivo: {result.Message}");
+                    _logger.LogWarning("Error al descargar archivo: {ErrorMessage}", result.Message);
                     return NotFound(new { success = false, message = result.Message });
                 }
 
@@ -131,13 +132,13 @@ namespace web_api_users.Controllers
         {
             try
             {
-                _logger.LogInformation($"Eliminando archivo: {objectname} del bucket: {bucket}");
+                _logger.LogInformation("Eliminando archivo: {ObjectName} del bucket: {Bucket}", objectname, bucket);
 
                 var result = await _objectService.DeleteObjectAsync(bucket, objectname);
 
                 if (!result.Success)
                 {
-                    _logger.LogWarning($"Error al eliminar archivo: {result.Message}");
+                    _logger.LogWarning("Error al eliminar archivo: {ErrorMessage}", result.Message);
                     return StatusCode(500, new { success = false, message = result.Message });
                 }
 

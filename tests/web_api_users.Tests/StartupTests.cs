@@ -15,7 +15,7 @@ namespace web_api_users.Tests;
 
 public class StartupTests
 {
-    private static ServiceProvider Services(string? corsKey = null)
+    private static ServiceProvider Services(string? corsKey = "AllowedOrigins")
     {
         var values = new Dictionary<string, string?>
         {
@@ -58,18 +58,30 @@ public class StartupTests
         Assert.False((await authorization.AuthorizeAsync(new ClaimsPrincipal(), null, policy)).Succeeded);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("AllowedOrigins")]
-    [InlineData("AllowedHosts")]
-    public void Cors_UsesConfiguredOriginsOrFallback(string? key)
+    [Fact]
+    public void Cors_OnlyAllowsConfiguredOrigins()
     {
-        using var services = Services(key);
-        var policy = services.GetRequiredService<IOptions<CorsOptions>>().Value.GetPolicy("AllowSomeOrigins")!;
+        using var services = Services();
+        var policy = services.GetRequiredService<IOptions<CorsOptions>>()
+            .Value.GetPolicy("AllowSomeOrigins")!;
+
         Assert.True(policy.AllowAnyHeader);
         Assert.True(policy.AllowAnyMethod);
-        Assert.Equal(key == null, policy.AllowAnyOrigin);
-        if (key != null) Assert.Equal("https://app.example.test", Assert.Single(policy.Origins));
+        Assert.False(policy.AllowAnyOrigin);
+        Assert.Equal("https://app.example.test", Assert.Single(policy.Origins));
+        Assert.DoesNotContain("https://untrusted.example.test", policy.Origins);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("AllowedHosts")]
+    public void Cors_RejectsMissingAllowedOrigins(string? key)
+    {
+        using var services = Services(key);
+        var options = services.GetRequiredService<IOptions<CorsOptions>>();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => options.Value);
+        Assert.Contains("Cors:AllowedOrigins", exception.Message);
     }
 
     [Fact]
