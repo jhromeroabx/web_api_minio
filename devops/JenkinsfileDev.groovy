@@ -4,9 +4,9 @@ pipeline {
     environment {
         GIT_REPO           = 'https://github.com/jhromeroabx/web_api_minio.git'
         GIT_BRANCH         = 'develope'
-        //SONAR_PROJECT_KEY  = 'web-api-minio'
         LOCAL_REPO_PATH    = "/home/diego-epc/Documentos/PROYECTOS/web_api_minio"
         COMPOSE_PROJECT_NAME = 'web-api-minio'
+        PROJECT_FILE = 'web_api_users.csproj'
         REGISTRY_IMAGE = 'ghcr.io/jhromeroabx/web_api_minio'
         ENV_BACKUP_PATH   = '/opt/jenkins/envs/dev/.env_backup_web_api_minio_dev'
         ASPNETCORE_ENVIRONMENT = 'Development'
@@ -152,41 +152,50 @@ pipeline {
 
         stage('Levantar App con Docker Compose') {
             steps {
-                dir("${env.LOCAL_REPO_PATH}") {
-                    def containerName = "web-api-minio"
-                    withCredentials([
-                        usernamePassword(
-                            credentialsId: 'github-token',
-                            usernameVariable: 'GIT_USERNAME',
-                            passwordVariable: 'GIT_PASSWORD'
-                        )
-                    ]) {
-                        sh """
-                            trap 'docker logout ghcr.io' EXIT
-
-                            IMAGE_TAG=$(dotnet msbuild "$PROJECT_FILE" \
-                                -getProperty:Version)
-
-                            echo "📦 Versión a desplegar: $IMAGE_TAG"
-
-                            echo "🧹 Eliminando contenedor en uso si existe..."
-                            docker rm -f ${containerName} || true
-
-                            echo "🧼 Limpiando recursos docker compose (solo del proyecto)..."
-                            docker compose -p "\$COMPOSE_PROJECT_NAME" down --remove-orphans || true
-
-                            echo "🔐 Login en GHCR..."
-                            echo "\$GIT_PASSWORD" | docker login ghcr.io -u "\$GIT_USERNAME" --password-stdin
-
-                            echo "⬇️ Descargando imagen publicada..."
-                            docker compose -p "\$COMPOSE_PROJECT_NAME" pull
-
-                            echo "🚀 Levantando contenedor actualizado..."
-                            docker compose -p "\$COMPOSE_PROJECT_NAME" up -d
-
-                            echo "📋 Estado de contenedores:"
-                            docker compose -p "\$COMPOSE_PROJECT_NAME" ps
-                        """
+                script {
+                    def containerName = 'web-api-minio'
+        
+                    dir("${env.LOCAL_REPO_PATH}") {
+                        withEnv(["CONTAINER_NAME=${containerName}"]) {
+                            withCredentials([
+                                usernamePassword(
+                                    credentialsId: 'github-token',
+                                    usernameVariable: 'GIT_USERNAME',
+                                    passwordVariable: 'GIT_PASSWORD'
+                                )
+                            ]) {
+                                sh '''
+                                    set -eu
+                                    trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+        
+                                    test -f "$PROJECT_FILE"
+                                    IMAGE_TAG=$(dotnet msbuild "$PROJECT_FILE" -getProperty:Version)
+                                    test -n "$IMAGE_TAG"
+                                    export IMAGE_TAG
+        
+                                    echo "📦 Versión a desplegar: $IMAGE_TAG"
+        
+                                    echo "🧹 Eliminando contenedor en uso si existe..."
+                                    docker rm -f "$CONTAINER_NAME" || true
+        
+                                    echo "🧼 Limpiando recursos Docker Compose..."
+                                    docker compose -p "$COMPOSE_PROJECT_NAME" down --remove-orphans || true
+        
+                                    echo "🔐 Login en GHCR..."
+                                    printf '%s' "$GIT_PASSWORD" |
+                                        docker login ghcr.io -u "$GIT_USERNAME" --password-stdin
+        
+                                    echo "⬇️ Descargando imagen publicada..."
+                                    docker compose -p "$COMPOSE_PROJECT_NAME" pull
+        
+                                    echo "🚀 Levantando contenedor actualizado..."
+                                    docker compose -p "$COMPOSE_PROJECT_NAME" up -d
+        
+                                    echo "📋 Estado de contenedores:"
+                                    docker compose -p "$COMPOSE_PROJECT_NAME" ps
+                                '''
+                            }
+                        }
                     }
                 }
             }

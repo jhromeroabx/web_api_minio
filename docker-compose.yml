@@ -1,7 +1,8 @@
 version: '3.9'
 
 services:
-  miniowebapi:
+  web-api-minio:
+    container_name: web-api-minio
     restart: always
     image: ${REGISTRY_IMAGE:-ghcr.io/jhromeroabx/web_api_minio}:${IMAGE_TAG:-unset}
     env_file:
