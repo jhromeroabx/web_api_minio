@@ -1,108 +1,128 @@
 pipeline {
     agent { label 'server4you-vps' }
 
-environment {
-    GIT_REPO           = 'https://github.com/jhromeroabx/web_api_minio.git'
-    GIT_BRANCH         = 'main'
-    SONAR_PROJECT_KEY  = 'miniowebapi'
-    SONAR_HOST_URL     = 'https://sonarqubeloasi.share.zrok.io'
-    LOCAL_REPO_PATH    = "/home/jhosep-epc/Documentos/PROYECTOS/web_api_minio"
-    COMPOSE_PROJECT_NAME = 'web-api-minio'
-    ENV_BACKUP_PATH   = '/opt/jenkins/envs/prod/.env_backup_web_api_minio_prod'
-    ASPNETCORE_ENVIRONMENT = 'Production'
-}
+    environment {
+        GIT_REPO           = 'https://github.com/jhromeroabx/web_api_minio.git'
+        GIT_BRANCH         = 'main'
+        SONAR_PROJECT_KEY  = 'miniowebapi'
+        SONAR_HOST_URL     = 'https://sonarqubeloasi.share.zrok.io'
+        LOCAL_REPO_PATH    = "/home/jhosep-epc/Documentos/PROYECTOS/web_api_minio"
+        COMPOSE_PROJECT_NAME = 'web-api-minio'
+        REGISTRY_IMAGE = 'ghcr.io/jhromeroabx/web_api_minio'
+        ENV_BACKUP_PATH   = '/opt/jenkins/envs/prod/.env_backup_web_api_minio_prod'
+        ASPNETCORE_ENVIRONMENT = 'Production'
+        IMAGE_TAG = 'prod'
+    }
 
-stages {
-    stage('Verificar/Clonar repositorio') {
-        steps {
-            script {
-                def repoPath = env.LOCAL_REPO_PATH
-                def isGitRepo = fileExists("${repoPath}/.git")
-
-                if (!fileExists(repoPath) || !isGitRepo) {
-                    echo '📁 No es un repositorio válido. Re-clonando desde cero...'
-                    sh "rm -rf ${repoPath}"
-                    withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                        sh """
-                            git clone -b ${env.GIT_BRANCH} https://\$GIT_USERNAME:\$GIT_PASSWORD@${env.GIT_REPO.replace('https://','')} ${env.LOCAL_REPO_PATH}
-                        """
-                    }
-                } else {
-                    echo '📁 Repositorio válido detectado. Sincronizando cambios...'
-                    withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                        dir(repoPath) {
+    stages {
+        stage('Verificar/Clonar repositorio') {
+            steps {
+                script {
+                    if (!fileExists("${env.LOCAL_REPO_PATH}/.git")) {
+                        echo '📁 Clonando repositorio...'
+                        withCredentials([
+                            usernamePassword(
+                                credentialsId: 'github-token',
+                                usernameVariable: 'GIT_USERNAME',
+                                passwordVariable: 'GIT_PASSWORD'
+                            )
+                        ]) {
                             sh """
+                                git clone -b ${env.GIT_BRANCH} https://\$GIT_USERNAME:\$GIT_PASSWORD@${env.GIT_REPO.replace('https://','')} ${env.LOCAL_REPO_PATH}
+                            """
+                        }
+                    }
+                    dir("${env.LOCAL_REPO_PATH}") {
+                        withCredentials([
+                            usernamePassword(
+                                credentialsId: 'github-token',
+                                usernameVariable: 'GIT_USERNAME',
+                                passwordVariable: 'GIT_PASSWORD'
+                            )
+                        ]) {
+                            sh '''
+                                set -eu
                                 echo "🔐 Verificando respaldo del .env..."
-                                if [ ! -s "${env.ENV_BACKUP_PATH}" ]; then
-                                    echo "❌ El respaldo no existe o está vacío: ${env.ENV_BACKUP_PATH}"
-                                    exit 1
-                                fi
+                                test -s "$ENV_BACKUP_PATH"
 
-                                echo "🔄 Limpiando repositorio..."
-                                git reset --hard
-                                git clean -fd --exclude=.env  # Corrige uso de --exclude
+                                echo "📥 Actualizando repositorio..."
 
-                                echo "📥 Sincronizando con remoto..."
-                                git remote set-url origin https://\$GIT_USERNAME:\$GIT_PASSWORD@${env.GIT_REPO.replace('https://','')}
-                                git fetch --all --force --prune
+                                git remote set-url origin \
+                                    "https://$GIT_USERNAME:$GIT_PASSWORD@${GIT_REPO#https://}"
 
-                                echo "🔄 Actualizando rama ${env.GIT_BRANCH}..."
-                                git checkout ${env.GIT_BRANCH} --force 2>/dev/null || git checkout -b ${env.GIT_BRANCH} origin/${env.GIT_BRANCH} --force
-                                git pull origin ${env.GIT_BRANCH} --force
+                                git fetch origin "$GIT_BRANCH"
 
-                                echo "🔧 Copiando .env de producción..."
-                                cp "${env.ENV_BACKUP_PATH}" .env
+                                git checkout -B "$GIT_BRANCH" \
+                                    "origin/$GIT_BRANCH"
+
+                                echo "🔧 Restaurando variables de entorno..."
+
+                                cp "$ENV_BACKUP_PATH" .env
                                 chmod 600 .env
 
-                                echo "✅ Sincronización completada:"
-                                git status
-                                ls -la .env
-                            """
+                                echo "✅ Repositorio actualizado"
+                            '''
                         }
                     }
                 }
             }
         }
-    }
 
-    stage('Cleanup Docker Proyecto') {
-        steps {
-            dir("${env.LOCAL_REPO_PATH}") {
-                sh '''
-                    echo "🧹 Cleanup compose project: $COMPOSE_PROJECT_NAME"
-                    docker-compose -p "$COMPOSE_PROJECT_NAME" down --rmi local -v --remove-orphans || true
-                    echo "Cleanup proyecto listo"
-                '''
+        stage('Cleanup Docker Proyecto') {
+            steps {
+                dir("${env.LOCAL_REPO_PATH}") {
+                    sh '''
+                        set -eu
+                        echo "🧹 Verificando recursos Docker del proyecto..."
+                        docker-compose -p "$COMPOSE_PROJECT_NAME" ps -a
+
+                        echo "🧹 Eliminando contenedores detenidos del proyecto..."
+                        docker-compose -p "$COMPOSE_PROJECT_NAME" rm -f
+
+                        echo "✅ Cleanup del proyecto completado"
+                    '''
+                }
             }
         }
-    }
 
-    stage('Levantar App con Docker Compose') {
-        steps {
-            script {
+        stage('Levantar App con Docker Compose') {
+            steps {
                 dir("${env.LOCAL_REPO_PATH}") {
-                    def containerName = "miniowebapi"
+                    withCredentials([
+                        usernamePassword(
+                            credentialsId: 'github-token',
+                            usernameVariable: 'GIT_USERNAME',
+                            passwordVariable: 'GIT_PASSWORD'
+                        )
+                    ]) {
+                        sh '''
+                            set -eu
+                            export DOCKER_CONFIG="$(mktemp -d)"
+                            trap 'rm -rf "$DOCKER_CONFIG"' EXIT
 
-                    sh """
-                        echo "🧹 Eliminando contenedor en uso si existe..."
-                        docker rm -f ${containerName} || true
+                            echo "🔐 Autenticando en GitHub Container Registry..."
+                            echo "$GIT_PASSWORD" | docker login ghcr.io \
+                                -u "$GIT_USERNAME" \
+                                --password-stdin
 
-                        echo "🧼 Limpiando recursos docker-compose (solo del proyecto)..."
-                        docker-compose -p "\$COMPOSE_PROJECT_NAME" down --remove-orphans || true
+                            echo "📦 Imagen a desplegar: $REGISTRY_IMAGE:$IMAGE_TAG"
 
-                        echo "🔨 Recompilando imagen desde cero..."
-                        docker-compose -p "\$COMPOSE_PROJECT_NAME" build
+                            echo "⬇️ Descargando imagen desde GHCR..."
+                            docker-compose -p "$COMPOSE_PROJECT_NAME" pull
 
-                        echo "🚀 Levantando contenedor actualizado..."
-                        docker-compose -p "\$COMPOSE_PROJECT_NAME" up -d
+                            echo "🚀 Levantando API MinIO..."
+                            docker-compose -p "$COMPOSE_PROJECT_NAME" up -d \
+                                --no-build \
+                                --remove-orphans
 
-                        echo "📋 Estado de contenedores:"
-                        docker-compose -p "\$COMPOSE_PROJECT_NAME" ps
-                    """
+                            echo "📋 Estado de los contenedores..."
+                            docker-compose -p "$COMPOSE_PROJECT_NAME" ps
+
+                            echo "✅ Despliegue finalizado"
+                        '''
+                    }
                 }
             }
         }
     }
-}
-
 }
