@@ -4,7 +4,7 @@ pipeline {
     environment {
         GIT_REPO           = 'https://github.com/jhromeroabx/web_api_minio.git'
         GIT_BRANCH         = 'develope'
-        SONAR_PROJECT_KEY  = 'web-api-minio'
+        //SONAR_PROJECT_KEY  = 'web-api-minio'
         LOCAL_REPO_PATH    = "/home/diego-epc/Documentos/PROYECTOS/web_api_minio"
         COMPOSE_PROJECT_NAME = 'web-api-minio'
         REGISTRY_IMAGE = 'ghcr.io/jhromeroabx/web_api_minio'
@@ -50,6 +50,7 @@ pipeline {
                                     "https://$GIT_USERNAME:$GIT_PASSWORD@${GIT_REPO#https://}"
 
                                 git fetch origin "$GIT_BRANCH"
+                                git remote set-url origin "$GIT_REPO"
 
                                 git checkout -B "$GIT_BRANCH" \
                                     "origin/$GIT_BRANCH"
