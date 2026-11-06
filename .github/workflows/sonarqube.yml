@@ -1,0 +1,62 @@
+name: SonarQube Analysis
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Rama a analizar'
+        required: true
+        default: 'develope'
+        type: string
+
+env:
+  SONAR_HOST_URL: https://sonarqube.loasi.cloud
+  SONAR_PROJECT_KEY: web-api-minio
+
+jobs:
+  sonarqube:
+    name: Análisis SonarQube .NET
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout de la rama indicada
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+
+      - name: Configurar .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Instalar SonarScanner for .NET
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH
+
+      - name: Restaurar dependencias
+        run: dotnet restore web_api_users.sln
+
+      - name: Analizar con SonarQube
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet-sonarscanner begin \
+            /k:"$SONAR_PROJECT_KEY" \
+            /d:sonar.host.url="$SONAR_HOST_URL" \
+            /d:sonar.token="$SONAR_TOKEN" \
+            /d:sonar.exclusions="**/bin/**,**/obj/**"
+
+          dotnet build web_api_users.sln \
+            --configuration Release \
+            --no-incremental
+
+          dotnet-sonarscanner end \
+            /d:sonar.token="$SONAR_TOKEN"
