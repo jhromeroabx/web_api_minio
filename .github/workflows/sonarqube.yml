@@ -38,7 +38,7 @@ jobs:
       - name: Instalar SonarScanner for .NET
         run: |
           dotnet tool install --global dotnet-sonarscanner
-          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Restaurar dependencias
         run: dotnet restore web_api_users.sln
