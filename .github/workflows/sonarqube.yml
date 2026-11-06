@@ -37,6 +37,7 @@ jobs:
 
       - name: Instalar SonarScanner for .NET
         run: |
+          cd "$RUNNER_TEMP"
           dotnet tool install --global dotnet-sonarscanner
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
