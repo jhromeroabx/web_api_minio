@@ -1,14 +1,13 @@
 #See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
+# .NET 8 escucha en 8080 por defecto; se mantiene el 80 para conservar los mapeos existentes
+ENV ASPNETCORE_HTTP_PORTS=80
 EXPOSE 80
 EXPOSE 443
 
-# Instala libgdiplus
-RUN apt-get update && apt-get install -y libgdiplus
-
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ["web_api_users.csproj", "."]
 RUN dotnet restore "./web_api_users.csproj"
@@ -23,7 +22,7 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Usuario no-root para más seguridad
+# Usuario no-root para mï¿½s seguridad
 RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
