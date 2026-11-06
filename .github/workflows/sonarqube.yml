@@ -44,10 +44,13 @@ jobs:
         run: dotnet restore web_api_users.sln
 
       - name: Analizar con SonarQube
-        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          if [ -f sonar-project.properties ]; then
+            mv sonar-project.properties sonar-project.properties.sonar.bak
+            trap 'mv sonar-project.properties.sonar.bak sonar-project.properties' EXIT
+          fi
           dotnet-sonarscanner begin \
             /k:"$SONAR_PROJECT_KEY" \
             /d:sonar.host.url="$SONAR_HOST_URL" \
